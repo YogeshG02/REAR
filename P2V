@@ -1,72 +1,178 @@
-install rear 
-yum install rear 
+CENTOS 6 DISASTER RECOVERY USING REAR
+
+--------------------------------------------------
+1. Install ReaR
+--------------------------------------------------
+
+yum install rear
+
+
+--------------------------------------------------
+2. Configure ReaR
+--------------------------------------------------
 
 vi /etc/rear/local.conf
+
+Add:
 
 OUTPUT=ISO
 BACKUP=NETFS
 BACKUP_URL=nfs://192.168.0.46/nfsshare
 
--------------------------------
 
-screen -S backup 
+--------------------------------------------------
+3. Run Backup using Screen
+--------------------------------------------------
 
-rear -v -d mkbackup 
+Start screen session
 
-screen -ls 
-screen -r backup -- attchaed session 
+screen -S backup
+
+Run backup
+
+rear -v -d mkbackup
 
 
-in Other Platform like VNWARE, NUTANIX 
+--------------------------------------------------
+4. Screen Session Commands
+--------------------------------------------------
 
-attched rear ISO 
-boot VM 
+Check screen session
 
-run rear recover 
+screen -ls
 
-select do not mapped disk
+Reattach session
 
-select rear shell
+screen -r backup
 
-----------------------
-create Partition 
--------------------------
+
+--------------------------------------------------
+5. Recovery on New Platform
+--------------------------------------------------
+
+This recovery process works on:
+
+VMware
+Nutanix
+Physical Server
+Any VM platform
+
+Attach ReaR ISO to VM
+Boot from ISO
+
+
+--------------------------------------------------
+6. Start Recovery
+--------------------------------------------------
+
+rear recover
+
+During recovery select:
+
+Do not map disks automatically
+
+Then select:
+
+ReaR shell
+
+
+--------------------------------------------------
+7. Create Disk Partition
+--------------------------------------------------
+
 parted /dev/sda
-mklable msdos
-mkpart primary ext4 1MiB 1025MiB 
-set 1 boot on 
-mkpart primary ext4 1025MiB  100%
-quite
+
+mklabel msdos
+mkpart primary ext4 1MiB 1025MiB
+set 1 boot on
+mkpart primary ext4 1025MiB 100%
+quit
 
 
+Partition Layout:
+
+/dev/sda1  -> /boot
+/dev/sda2  -> LVM
 
 
-----Create Boot /initramfs / grub 
+--------------------------------------------------
+8. Enter Recovered System
+--------------------------------------------------
+
 chroot /mnt/local
+
+
+--------------------------------------------------
+9. Install GRUB
+--------------------------------------------------
+
 grub
+
 root (hd0,0)
 setup (hd0)
 quit
 
+Install grub on disk
+
 grub-install /dev/sda
 
-not error 
 
-dracut -f 
+--------------------------------------------------
+10. Regenerate Initramfs
+--------------------------------------------------
+
+dracut -f
+
+
+--------------------------------------------------
+11. Verify Kernel Information
+--------------------------------------------------
 
 grubby --info=ALL
 
+
+--------------------------------------------------
+12. Remove Incorrect Root Parameter
+--------------------------------------------------
+
 grubby --update-kernel=ALL --remove-args="root=/dev/vg_centos-latest/lv_root"
+
+
+--------------------------------------------------
+13. Add Correct LVM Root Parameter
+--------------------------------------------------
 
 grubby --update-kernel=ALL --args="root=/dev/mapper/vg_centos--latest-lv_root"
 
+
+--------------------------------------------------
+14. Set Default Kernel
+--------------------------------------------------
+
 grubby --set-default /boot/vmlinuz-2.6.32-431.el6.x86_64
 
-grub.conf  ---change with current lvm   
+
+--------------------------------------------------
+15. Verify GRUB Configuration
+--------------------------------------------------
+
+vi /boot/grub/grub.conf
+
+Ensure correct root entry:
+
+kernel /vmlinuz-2.6.32-431.el6.x86_64 ro root=/dev/mapper/vg_centos--latest-lv_root
 
 
-exit 
+--------------------------------------------------
+16. Exit and Reboot
+--------------------------------------------------
 
-reboot 
+exit
+reboot
 
-FINISH 
+
+--------------------------------------------------
+RECOVERY COMPLETE
+--------------------------------------------------
+
+The system should now boot normally with the recovered disk.
