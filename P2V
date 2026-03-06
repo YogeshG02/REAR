@@ -1,0 +1,72 @@
+install rear 
+yum install rear 
+
+vi /etc/rear/local.conf
+
+OUTPUT=ISO
+BACKUP=NETFS
+BACKUP_URL=nfs://192.168.0.46/nfsshare
+
+-------------------------------
+
+screen -S backup 
+
+rear -v -d mkbackup 
+
+screen -ls 
+screen -r backup -- attchaed session 
+
+
+in Other Platform like VNWARE, NUTANIX 
+
+attched rear ISO 
+boot VM 
+
+run rear recover 
+
+select do not mapped disk
+
+select rear shell
+
+----------------------
+create Partition 
+-------------------------
+parted /dev/sda
+mklable msdos
+mkpart primary ext4 1MiB 1025MiB 
+set 1 boot on 
+mkpart primary ext4 1025MiB  100%
+quite
+
+
+
+
+----Create Boot /initramfs / grub 
+chroot /mnt/local
+grub
+root (hd0,0)
+setup (hd0)
+quit
+
+grub-install /dev/sda
+
+not error 
+
+dracut -f 
+
+grubby --info=ALL
+
+grubby --update-kernel=ALL --remove-args="root=/dev/vg_centos-latest/lv_root"
+
+grubby --update-kernel=ALL --args="root=/dev/mapper/vg_centos--latest-lv_root"
+
+grubby --set-default /boot/vmlinuz-2.6.32-431.el6.x86_64
+
+grub.conf  ---change with current lvm   
+
+
+exit 
+
+reboot 
+
+FINISH 
